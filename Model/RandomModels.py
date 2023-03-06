@@ -126,6 +126,7 @@ class DropRandomMapperV2(nn.Module):
         self.n_random = n_random
         self.seed = seed
         self.weight_initializing(seed = self.seed)
+        self.mask_history = []
 
     def forward(self, x):
         with torch.no_grad():
@@ -136,8 +137,9 @@ class DropRandomMapperV2(nn.Module):
         score_list = []
 
         for i in range(self.n_random):
+            k = self.dropout_initializing(seed = i)
             score = self(x)
-            self.dropout_initializing(seed = i)
+            self.mask_history.append(k)
             score_list.append(score.detach().numpy())
         return np.concatenate(score_list,axis=-1)
 
@@ -149,11 +151,13 @@ class DropRandomMapperV2(nn.Module):
 
     def dropout_initializing(self, seed = 0):
         torch.manual_seed(seed)
+        mask_list = []
         for m in self.model:
             if hasattr(m, 'reset_dr_mask'):
-                m.reset_dr_mask()
-
-
+                m.reset_dr_mask(seed = seed)
+                mask_list.append(m.mask)
+        return mask_list
+#%%
 class ModifiedDropout(nn.Module):
     def __init__(self, d_in, p = 0.5):
         super().__init__()
@@ -164,9 +168,10 @@ class ModifiedDropout(nn.Module):
     def forward(self, x):
         return torch.mul(x, self.mask)
 
-    def reset_dr_mask(self):
+    def reset_dr_mask(self,seed):
+        torch.manual_seed(seed)
         self.mask = torch.bernoulli(self.premask)
-
+#%%
 class DropRandomMapper(nn.Module):
     def __init__(self, input_dim, n_random = 500, seed = 0, dr_rates = 0.5):
         super().__init__()
@@ -254,6 +259,7 @@ class DropNShotRandomMapperV2(nn.Module):
         self.n_random = n_random
         self.seed = seed
         self.weight_initializing(seed = self.seed)
+        self.mask_history = []
 
     def forward(self, x):
         with torch.no_grad():
@@ -263,8 +269,9 @@ class DropNShotRandomMapperV2(nn.Module):
     def decision_function(self, x):
         score_list = []
         for j in range(self.drop_time):
+            k = self.dropout_initializing(seed = j )
             score = self(x)
-            self.dropout_initializing(seed = j )
+            self.mask_history.append(k)
             score_list.append(score.detach().numpy())    
         return np.concatenate(score_list,axis=-1)
 
@@ -276,6 +283,9 @@ class DropNShotRandomMapperV2(nn.Module):
 
     def dropout_initializing(self, seed = 0):
         torch.manual_seed(seed)
+        mask_list = []
         for m in self.model:
             if hasattr(m, 'reset_dr_mask'):
-                m.reset_dr_mask()
+                m.reset_dr_mask(seed = seed)
+                mask_list.append(m.mask)
+        return mask_list

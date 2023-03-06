@@ -42,7 +42,7 @@ for seed in args['SEEDS']:
 
             RM_1SHOT = OneShotRandomMapper(input_dim=args['RAW_DIM'], n_random= 500, seed = args['SEED'])
             # RM_DNS = DropNShotRandomMapper(input_dim=args['RAW_DIM'], n_random= 500, seed = args['SEED'], dr_rates = 0.5, drop_time=5)
-            RM_DNS_V2 = DropNShotRandomMapperV2(input_dim=args['RAW_DIM'], n_random= 500, seed = args['SEED'], dr_rates = 0.5, drop_time=5)
+            RM_DNS_V2 = DropNShotRandomMapperV2(input_dim=args['RAW_DIM'], n_random= 500, seed = args['SEED'], dr_rates = 0.8, drop_time=50)
 
             RM = RandomMapperV3(input_dim = args['RAW_DIM'], n_random= 500)
             LRM = RandomMapLinear(input_dim = args['RAW_DIM'], out_dim = 500, seed = args['SEED'])
@@ -59,6 +59,9 @@ for seed in args['SEEDS']:
                 else:
                     Y_train_hat = model.decision_function(torch.Tensor(X_train))
                     Y_test_hat = model.decision_function(torch.Tensor(X_test))
+
+                    Y_train_hat = RM_DNS_V2.decision_function(torch.Tensor(X_train))
+                    Y_test_hat = RM_DNS_V2.decision_function(torch.Tensor(X_test))
 
                 scorer = MahalanobisDistance()
                 scorer.fit(Y_train_hat)
